@@ -15,6 +15,7 @@
 #include <arpa/inet.h>
 #include <unistd.h> /* close */
 #include <netdb.h> /* gethostbyname */
+#include <time.h>
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #define closesocket(s) close(s)
@@ -34,6 +35,8 @@ typedef struct in_addr IN_ADDR;
 #define MAX_CLIENTS     100
 
 #define BUF_SIZE    1024
+#define HISTORIES_DIR "histories"
+#define HISTORY_FILENAME "history.txt"
 
 #include "client.h"
 
@@ -49,7 +52,9 @@ static void send_history(Client client);
 static void send_message_to_all_clients(Client *clients, Client client, int actual, const char *buffer, char from_server);
 static void remove_client(Client *clients, int to_remove, int *actual);
 static void clear_clients(Client *clients, int actual);
-static char* concat(const char * part1, const char* part2);
+
+/*get the current date formatted as dd/MM/yyyy hh:mm:ss*/
+static char* get_date_heure();
 
 /*
 finds the client index in an array of clients from its name

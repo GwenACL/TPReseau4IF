@@ -145,6 +145,22 @@ static void clear_clients(Client *clients, int actual)
    }
 }
 
+static char* get_date_heure(){
+   int h, min, s, day, mois, an;
+  time_t now;
+  time(&now);
+    struct tm *local = localtime(&now);
+  h = local->tm_hour;        
+  min = local->tm_min;       
+  s = local->tm_sec;       
+  day = local->tm_mday;          
+  mois = local->tm_mon + 1;     
+  an = local->tm_year + 1900;  
+  char* date = (char*)malloc(30);
+  sprintf(date,"%02d/%02d/%d %02d:%02d:%02d", day, mois, an, h, min, s);
+  return date;
+}
+
 static void remove_client(Client *clients, int to_remove, int *actual)
 {
    /* we remove the client in the array */
@@ -153,31 +169,26 @@ static void remove_client(Client *clients, int to_remove, int *actual)
    (*actual)--;
 }
 
-static char* concat(const char * part1, const char* part2){
-   char *subdir = (char*) malloc(strlen(part1)+strlen(part2)+1);
-   strcpy(subdir, part1);
-   strcat(subdir, part2);
-   return subdir;
-}
 
 static void push_history(Client client, const char *message)
 {
 
-   if (opendir("histories") == NULL)
+   if (opendir(HISTORIES_DIR) == NULL)
    {
-      mkdir("histories", 0700);
+      mkdir(HISTORIES_DIR, 0700);
    }
 
-   char* subdir=concat("histories/", client.name);
+   char *filename = (char*)malloc(strlen(HISTORIES_DIR)+strlen(client.name)+strlen(HISTORY_FILENAME)+3);
 
-   if (opendir(subdir) == NULL)
+   sprintf(filename,"%s%c%s",HISTORIES_DIR,'/', client.name);
+
+   if (opendir(filename) == NULL)
    {
-      mkdir(subdir, 0700);
+      mkdir(filename, 0700);
    }
    FILE *fptr;
 
-   char *filename= concat(subdir, "/history.txt");
-   free(subdir);
+   sprintf(filename, "%s%c%s", filename, '/', HISTORY_FILENAME);
 
    if ((fptr = fopen(filename, "a")) != NULL)
    {
@@ -213,10 +224,13 @@ static void send_message_to_all_clients(Client *clients, Client sender, int actu
       {
          if (from_server == 0)
          {
-            strncpy(message, sender.name, BUF_SIZE - 1);
+            strncpy(message, get_date_heure(), BUF_SIZE-1);
+            strncat(message, " - ", sizeof message - strlen(message) - 1);
+            strncat(message, sender.name, sizeof message -strlen(message)-1);
             strncat(message, " : ", sizeof message - strlen(message) - 1);
          }
          strncat(message, buffer, sizeof message - strlen(message) - 1);
+      
          
          push_history(clients[i], message);
 
