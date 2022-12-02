@@ -49,5 +49,11 @@ static void send_history(Client client);
 static void send_message_to_all_clients(Client *clients, Client client, int actual, const char *buffer, char from_server);
 static void remove_client(Client *clients, int to_remove, int *actual);
 static void clear_clients(Client *clients, int actual);
+static char* concat(const char * part1, const char* part2);
+
+/*
+finds the client index in an array of clients from its name
+*/
+static int get_client_from_name(Client *clients, int actual, const char* client_name);
 
 #endif /* guard */

@@ -192,7 +192,14 @@ static void send_history(Client client)
 {
 }
 
-
+static int get_client_from_name(Client *clients, int actual, const char* client_name){
+   for(int i=0; i<actual; i++){
+      if(!strcmp(clients[i].name, client_name)){
+         return i;
+      }
+   }
+   return -1;
+}
 
 static void send_message_to_all_clients(Client *clients, Client sender, int actual, const char *buffer, char from_server)
 {
