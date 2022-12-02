@@ -143,9 +143,10 @@ static void app(void)
                   strncat(buffer, " disconnected !", BUF_SIZE - strlen(buffer) - 1);
                   send_message_to_all_clients(clients, client, actual, buffer, 1);
                }
-               else
+               else if (strncmp(buffer,"@",1) == 0)
                {
-                  send_message_to_all_clients(clients, client, actual, buffer, 0);
+                  send_message_to_one_client(clients,client,actual,buffer);
+                  //send_message_to_all_clients(clients, client, actual, buffer, 0);
                }
                break;
             }
@@ -245,6 +246,48 @@ static void send_message_to_all_clients(Client *clients, Client sender, int actu
          write_client(clients[i].sock, message);
       }
    }
+}
+
+//renvoie la position d'un charactère dans une chaine, si non-présent renvoie 0
+static int position(const char *chaine, char carac)
+{
+   int taille = strlen(chaine);
+   int pos = 0;
+   int i = 0;
+   for (i = 0; i < taille; i++)
+   {
+      if (chaine[i] == carac)
+      {
+         return i;
+      }
+   }
+   return 0;
+}
+
+static void send_message_to_one_client(Client *clients, Client sender, int actual, const char *buffer)
+{
+   int i = 0;
+   char message[BUF_SIZE];
+   message[0] = 0;
+   int pos = position(buffer,' ');
+   int pos2 = 0;
+   char name[100]; 
+   strncpy(name,buffer+1,pos-1);
+   pos2 = get_client_from_name(clients,actual,name);
+   //si le client n'est pas connecté
+   if (pos2 == -1)
+   {
+   }
+   else 
+   {
+   strncpy(message, sender.name, BUF_SIZE - 1);
+   strncat(message, " :", sizeof message - strlen(message) - 1);
+   char newmessage[strlen(buffer)];
+   strcpy(newmessage,buffer+pos);
+   strncat(message, newmessage, sizeof message - strlen(message) - 1);
+   write_client(clients[pos2].sock, message);
+   }
+
 }
 
 static int init_connection(void)
