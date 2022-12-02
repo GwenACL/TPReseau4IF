@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "server.h"
 #include "client.h"
@@ -83,6 +84,26 @@ static void app(void)
          if (read_client(csock, buffer) == -1)
          {
             /* disconnected */
+            continue;
+         }
+         
+         /* checks that username not already used*/
+         bool used = false;
+
+         for(i = 0; i < actual; i++)
+         {
+            if(strcmp(buffer,clients[i].name) == 0)
+            {
+               write_client(csock,"This username is already being used, please try to connect with another one.");
+               closesocket(csock);
+               used = true;
+               break;
+            }
+         }
+
+         /* if usernamed used we don't add the client to the array*/
+         if (used)
+         {
             continue;
          }
 
@@ -211,6 +232,7 @@ static void send_message_to_all_clients(Client *clients, Client sender, int actu
       /* we don't send message to the sender */
       if (sender.sock != clients[i].sock)
       {
+         strncpy(message,"",BUF_SIZE - 1);
          if (from_server == 0)
          {
             strncpy(message, sender.name, BUF_SIZE - 1);
