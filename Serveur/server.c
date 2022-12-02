@@ -170,7 +170,7 @@ static void remove_client(Client *clients, int to_remove, int *actual)
 }
 
 
-static void push_history(Client client, const char *message)
+static void push_history(const char * client_name, const char *message)
 {
 
    if (opendir(HISTORIES_DIR) == NULL)
@@ -178,9 +178,9 @@ static void push_history(Client client, const char *message)
       mkdir(HISTORIES_DIR, 0700);
    }
 
-   char *filename = (char*)malloc(strlen(HISTORIES_DIR)+strlen(client.name)+strlen(HISTORY_FILENAME)+3);
+   char *filename = (char*)malloc(strlen(HISTORIES_DIR)+strlen(client_name)+strlen(HISTORY_FILENAME)+3);
 
-   sprintf(filename,"%s%c%s",HISTORIES_DIR,'/', client.name);
+   sprintf(filename,"%s%c%s",HISTORIES_DIR,'/', client_name);
 
    if (opendir(filename) == NULL)
    {
@@ -232,7 +232,7 @@ static void send_message_to_all_clients(Client *clients, Client sender, int actu
          strncat(message, buffer, sizeof message - strlen(message) - 1);
       
          
-         push_history(clients[i], message);
+         push_history(clients[i].name, message);
 
          write_client(clients[i].sock, message);
       }
