@@ -40,7 +40,10 @@ typedef struct in_addr IN_ADDR;
 
 #include "client.h"
 
-static void init(void);
+/*the server root directory path*/
+static char* root;
+
+static void init(const char* argv_0);
 static void end(void);
 static void app(void);
 static int init_connection(void);
@@ -54,6 +57,7 @@ static void send_message_to_one_client(Client *clients, Client client, int actua
 static void remove_client(Client *clients, int to_remove, int *actual);
 static void clear_clients(Client *clients, int actual);
 
+static int position(const char *chaine, char carac, int last);
 /*get the current date formatted as dd/MM/yyyy hh:mm:ss*/
 static char* get_date_heure();
 
