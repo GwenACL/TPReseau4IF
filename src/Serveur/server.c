@@ -7,7 +7,7 @@
 #include "server.h"
 #include "client.h"
 
-static void init(void)
+static void init(const char *executable_file)
 {
 #ifdef WIN32
    WSADATA wsa;
@@ -18,6 +18,10 @@ static void init(void)
       exit(EXIT_FAILURE);
    }
 #endif
+   /*init the server root directory path*/
+   int root_dir_path_len = position(executable_file, '/',1);
+   root = (char *)malloc(sizeof(char) * root_dir_path_len);
+   strncpy(root, executable_file, root_dir_path_len);
 }
 
 static void end(void)
@@ -86,15 +90,15 @@ static void app(void)
             /* disconnected */
             continue;
          }
-         
+
          /* checks that username not already used*/
          bool used = false;
 
-         for(i = 0; i < actual; i++)
+         for (i = 0; i < actual; i++)
          {
-            if(strcmp(buffer,clients[i].name) == 0)
+            if (strcmp(buffer, clients[i].name) == 0)
             {
-               write_client(csock,"This username is already being used, please try to connect with another one.");
+               write_client(csock, "This username is already being used, please try to connect with another one.");
                closesocket(csock);
                used = true;
                break;
@@ -143,10 +147,10 @@ static void app(void)
                   strncat(buffer, " disconnected !", BUF_SIZE - strlen(buffer) - 1);
                   send_message_to_all_clients(clients, client, actual, buffer, 1);
                }
-               else if (strncmp(buffer,"@",1) == 0)
+               else if (strncmp(buffer, "@", 1) == 0)
                {
-                  send_message_to_one_client(clients,client,actual,buffer);
-                  //send_message_to_all_clients(clients, client, actual, buffer, 0);
+                  send_message_to_one_client(clients, client, actual, buffer);
+                  // send_message_to_all_clients(clients, client, actual, buffer, 0);
                }
                break;
             }
@@ -167,20 +171,21 @@ static void clear_clients(Client *clients, int actual)
    }
 }
 
-static char* get_date_heure(){
+static char *get_date_heure()
+{
    int h, min, s, day, mois, an;
-  time_t now;
-  time(&now);
-    struct tm *local = localtime(&now);
-  h = local->tm_hour;        
-  min = local->tm_min;       
-  s = local->tm_sec;       
-  day = local->tm_mday;          
-  mois = local->tm_mon + 1;     
-  an = local->tm_year + 1900;  
-  char* date = (char*)malloc(30);
-  sprintf(date,"%02d/%02d/%d %02d:%02d:%02d", day, mois, an, h, min, s);
-  return date;
+   time_t now;
+   time(&now);
+   struct tm *local = localtime(&now);
+   h = local->tm_hour;
+   min = local->tm_min;
+   s = local->tm_sec;
+   day = local->tm_mday;
+   mois = local->tm_mon + 1;
+   an = local->tm_year + 1900;
+   char *date = (char *)malloc(30);
+   sprintf(date, "%02d/%02d/%d %02d:%02d:%02d", day, mois, an, h, min, s);
+   return date;
 }
 
 static void remove_client(Client *clients, int to_remove, int *actual)
@@ -191,18 +196,19 @@ static void remove_client(Client *clients, int to_remove, int *actual)
    (*actual)--;
 }
 
-
-static void push_history(const char * client_name, const char *message)
+static void push_history(const char *client_name, const char *message)
 {
 
-   if (opendir(HISTORIES_DIR) == NULL)
+   char *filename = (char *)malloc(strlen(root) + strlen(HISTORIES_DIR) + strlen(client_name) + strlen(HISTORY_FILENAME) + 3);
+
+   sprintf(filename, "%s%c%s", root, '/', HISTORIES_DIR);
+
+   if (opendir(filename) == NULL)
    {
-      mkdir(HISTORIES_DIR, 0700);
+      mkdir(filename, 0700);
    }
 
-   char *filename = (char*)malloc(strlen(HISTORIES_DIR)+strlen(client_name)+strlen(HISTORY_FILENAME)+3);
-
-   sprintf(filename,"%s%c%s",HISTORIES_DIR,'/', client_name);
+   sprintf(filename, "%s%c%s", filename, '/', client_name);
 
    if (opendir(filename) == NULL)
    {
@@ -214,8 +220,8 @@ static void push_history(const char * client_name, const char *message)
 
    if ((fptr = fopen(filename, "a")) != NULL)
    {
-         fputs(message, fptr);
-         fputs(CRLF, fptr);
+      fputs(message, fptr);
+      fputs(CRLF, fptr);
    }
    free(filename);
    fclose(fptr);
@@ -225,9 +231,12 @@ static void send_history(Client client)
 {
 }
 
-static int get_client_from_name(Client *clients, int actual, const char* client_name){
-   for(int i=0; i<actual; i++){
-      if(!strcmp(clients[i].name, client_name)){
+static int get_client_from_name(Client *clients, int actual, const char *client_name)
+{
+   for (int i = 0; i < actual; i++)
+   {
+      if (!strcmp(clients[i].name, client_name))
+      {
          return i;
       }
    }
@@ -244,17 +253,16 @@ static void send_message_to_all_clients(Client *clients, Client sender, int actu
       /* we don't send message to the sender */
       if (sender.sock != clients[i].sock)
       {
-         strncpy(message,"",BUF_SIZE - 1);
+         strncpy(message, "", BUF_SIZE - 1);
          if (from_server == 0)
          {
-            strncpy(message, get_date_heure(), BUF_SIZE-1);
+            strncpy(message, get_date_heure(), BUF_SIZE - 1);
             strncat(message, " - ", sizeof message - strlen(message) - 1);
-            strncat(message, sender.name, sizeof message -strlen(message)-1);
+            strncat(message, sender.name, sizeof message - strlen(message) - 1);
             strncat(message, " : ", sizeof message - strlen(message) - 1);
          }
          strncat(message, buffer, sizeof message - strlen(message) - 1);
-      
-         
+
          push_history(clients[i].name, message);
 
          write_client(clients[i].sock, message);
@@ -262,20 +270,37 @@ static void send_message_to_all_clients(Client *clients, Client sender, int actu
    }
 }
 
-//renvoie la position d'un charactère dans une chaine, si non-présent renvoie 0
-static int position(const char *chaine, char carac)
+// renvoie la position d'un charactère dans une chaine, si non-présent renvoie -1
+// si last = 0 renvoie la premiere occurence du caractère sinon renvoie la dernière
+static int position(const char *chaine, char carac, int last)
 {
-   int taille = strlen(chaine);
-   int pos = 0;
-   int i = 0;
-   for (i = 0; i < taille; i++)
+   char *found;
+   if (!last)
    {
-      if (chaine[i] == carac)
-      {
-         return i;
-      }
+      found = strchr(chaine, carac);
    }
-   return 0;
+   else
+   {
+      found = strrchr(chaine, carac);
+   }
+   
+   if (found == NULL)
+   {
+      return -1;
+   }
+   return (found - chaine) / sizeof(char);
+
+   /*  int taille = strlen(chaine);
+     int pos = 0;
+     int i = 0;
+     for (i = 0; i < taille; i++)
+     {
+        if (chaine[i] == carac)
+        {
+           return i;
+        }
+     }
+     return -1;*/
 }
 
 static void send_message_to_one_client(Client *clients, Client sender, int actual, const char *buffer)
@@ -283,25 +308,33 @@ static void send_message_to_one_client(Client *clients, Client sender, int actua
    int i = 0;
    char message[BUF_SIZE];
    message[0] = 0;
-   int pos = position(buffer,' ');
-   int pos2 = 0;
-   char name[100]; 
-   strncpy(name,buffer+1,pos-1);
-   pos2 = get_client_from_name(clients,actual,name);
-   //si le client n'est pas connecté
-   if (pos2 == -1)
-   {
-   }
-   else 
-   {
-   strncpy(message, sender.name, BUF_SIZE - 1);
-   strncat(message, " :", sizeof message - strlen(message) - 1);
-   char newmessage[strlen(buffer)];
-   strcpy(newmessage,buffer+pos);
-   strncat(message, newmessage, sizeof message - strlen(message) - 1);
-   write_client(clients[pos2].sock, message);
-   }
+   int pos = position(buffer, ' ', 0);
 
+   // si il y a un message après le nom du destinataire
+   if (pos != -1)
+   {
+      int pos2 = 0;
+      char name[100];
+
+      strncpy(name, buffer + 1, pos - 1);
+
+      strncpy(message, get_date_heure(), BUF_SIZE - 1);
+      strncat(message, " - ", sizeof message - strlen(message) - 1);
+      printf("%s\n", message);
+      strncat(message, sender.name, sizeof message - strlen(message) - 1);
+      strncat(message, " :", sizeof message - strlen(message) - 1);
+      char newmessage[strlen(buffer)];
+      strcpy(newmessage, buffer + pos);
+      strncat(message, newmessage, sizeof message - strlen(message) - 1);
+
+      pos2 = get_client_from_name(clients, actual, name);
+      // si le client est connecté
+      if (pos2 != -1)
+      {
+         write_client(clients[pos2].sock, message);
+      }
+      push_history(name, message);
+   }
 }
 
 static int init_connection(void)
@@ -368,7 +401,7 @@ static void write_client(SOCKET sock, const char *buffer)
 
 int main(int argc, char **argv)
 {
-   init();
+   init(argv[0]);
 
    app();
 
