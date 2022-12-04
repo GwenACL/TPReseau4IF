@@ -429,7 +429,6 @@ static void create_private_group(Group * groups, int nbGroups, Client creator, c
    int pos = position(buffer+21,' ',0);
    strncpy(groups[nbGroups].name,buffer+21,pos);
    strncat(groups[nbGroups].password,buffer+22+pos,BUF_SIZE-1);
-   printf("position du caractère de fin : %d %s",position(groups[nbGroups].password,'\0',0),CRLF);
 
    
    //adds creator to the group
@@ -445,31 +444,38 @@ static void create_private_group(Group * groups, int nbGroups, Client creator, c
 static void add_member_to_public_group(Group * groups, int nbGroups, Client joiner, const char* buffer)
 {
    char name[MAX_NAME]; 
-   strncpy(name,buffer+18,strlen(buffer)-18);
-   printf("nom public : %s %s",name,CRLF);
+   strcpy(name,"");
+   strncat(name,buffer+18,strlen(buffer)-18);
    int pos;
    pos = get_group_from_name(groups,nbGroups,name);
-   int i;
-   bool part = false;
-   for(i = 0; i < groups[pos].nbMembres; i++)
+   if (pos == -1)
    {
-      if (joiner.sock == groups[pos].membres[i].sock)
-      {
-         write_client(joiner.sock,"You already are part of the group.");
-         part = true;
-         break;
-      }
+      write_client(joiner.sock,"There is no group with that name. Use 'availables' command to see online groups and members.");
    }
-   if (!part)
+   else 
    {
-      if (pos == 9)
+      int i;
+      bool part = false;
+      for(i = 0; i < groups[pos].nbMembres; i++)
       {
-         write_client(joiner.sock,"Sorry, it appears that this group is already full.");
+         if (joiner.sock == groups[pos].membres[i].sock)
+         {
+            write_client(joiner.sock,"You already are part of the group.");
+            part = true;
+            break;
+         }
       }
-      else 
+      if (!part)
       {
-      groups[pos].membres[groups[pos].nbMembres] = joiner;
-      groups[pos].nbMembres = (groups[pos].nbMembres+1);
+         if (pos == 9)
+         {
+            write_client(joiner.sock,"Sorry, it appears that this group is already full.");
+         }
+         else 
+         {
+         groups[pos].membres[groups[pos].nbMembres] = joiner;
+         groups[pos].nbMembres = (groups[pos].nbMembres+1);
+         }
       }
    }
 }
@@ -481,18 +487,12 @@ static void add_member_to_private_group(Group * groups, int nbGroups, Client joi
    int posNom = position(buffer+19,' ',0);
    strcpy(name3,"");
    strncat(name3,buffer+19,posNom);
-   printf("nom reçu : %s %s", name3, CRLF);
    strcpy(password,"");
    strncat(password,buffer+20+posNom,BUF_SIZE-1);
-   printf("password reçu : %s %s", password, CRLF);
-   printf("position du caractère de fin (reçu) : %d %s",position(password,'\0',0),CRLF);
-   printf("taille de password : %ld %s", strlen(password),CRLF);
-   
+
    int pos;
    pos = get_group_from_name(groups,nbGroups,name3);
 
-   printf("mot de passe donné : %s %s", password, CRLF);
-   printf("mot de passe réel : %s %s", groups[pos].password, CRLF);
    if (strcmp(password,groups[pos].password)!=0)
    {
       write_client(joiner.sock, "Wrong password.");
