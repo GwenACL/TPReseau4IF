@@ -30,7 +30,7 @@ static void end(void)
 #ifdef WIN32
    WSACleanup();
 #endif
-free(root);
+   free(root);
 }
 
 static void app(void)
@@ -50,7 +50,7 @@ static void app(void)
 
    while (1)
    {
-      strcpy(buffer,"");
+      strcpy(buffer, "");
       int i = 0;
       FD_ZERO(&rdfs);
 
@@ -149,23 +149,15 @@ static void app(void)
                   printf("%s disconnected%s", clients[i].name, CRLF); /*server log*/
 
                   remove_client(clients, i, &actual);
-                  strncpy(buffer, client.name, BUF_SIZE - 1);
-                  strncat(buffer, " disconnected !", BUF_SIZE - strlen(buffer) - 1);
-                  send_message_to_all_clients(clients, client, actual, buffer, 1);
+                  /* strncpy(buffer, client.name, BUF_SIZE - 1);
+                   strncat(buffer, " disconnected !", BUF_SIZE - strlen(buffer) - 1);
+                   send_message_to_all_clients(clients, client, actual, buffer, 1);*/
                }
                else if (strncmp(buffer, "create public group", 12) == 0)
                {
                   create_public_group(groups, nbGroups, client, buffer);
                   nbGroups++;
                   int i = 0;
-                  /*
-                  printf("nb groupes après création : %d %s",nbGroups,CRLF);
-                  printf("nb membres du groupe 0 : %d %s",groups[0].nbMembres,CRLF);
-                  for (i = 0; i < groups[0].nbMembres;i++)
-                  {
-                     printf("membre %d : %s %s",i,groups[0].membres[i].name,CRLF);
-                  }
-                  */
                }
                else if (strncmp(buffer, "join", 4) == 0)
                {
@@ -178,6 +170,10 @@ static void app(void)
                else if (strncmp(buffer, "~", 1) == 0)
                {
                   send_message_to_a_group(clients, client, groups, nbGroups, buffer);
+               }
+               else
+               {
+                  write_client(client.sock, "Invalid command");
                }
                break;
             }
@@ -230,17 +226,21 @@ static void push_history(const char *client_name, const char *message)
 
    sprintf(filename, "%s%c%s", root, '/', HISTORIES_DIR);
 
-   if (opendir(filename) == NULL)
+   DIR *history_dir = opendir(filename);
+   if (history_dir == NULL)
    {
       mkdir(filename, 0700);
    }
+   closedir(history_dir);
 
    sprintf(filename, "%s%c%s", filename, '/', client_name);
 
-   if (opendir(filename) == NULL)
+   history_dir = opendir(filename);
+   if (history_dir == NULL)
    {
       mkdir(filename, 0700);
    }
+   closedir(history_dir);
    FILE *fptr;
 
    sprintf(filename, "%s%c%s", filename, '/', HISTORY_FILENAME);
@@ -254,28 +254,38 @@ static void push_history(const char *client_name, const char *message)
    fclose(fptr);
 }
 
+static void save_sender_message(const char *sender_name, const char *message)
+{
+   char saved_message[BUF_SIZE];
+   saved_message[0] = 0;
+   char *date = get_date_heure();
+   sprintf(saved_message, "%s%s%s%s", message, " (sending datetime : ", date, " )");
+   push_history(sender_name, saved_message);
+   free(date);
+}
+
 static void send_history(Client client)
 {
    char message[BUF_SIZE];
-   message[0]=0;
+   message[0] = 0;
 
-   char* filename = (char*)malloc(strlen(root) + strlen(HISTORIES_DIR) + strlen(client.name) + strlen(HISTORY_FILENAME) + 3);
-   sprintf(filename, "%s%c%s%c%s%c%s", root, '/', HISTORIES_DIR,'/', client.name, '/', HISTORY_FILENAME);
+   char *filename = (char *)malloc(strlen(root) + strlen(HISTORIES_DIR) + strlen(client.name) + strlen(HISTORY_FILENAME) + 3);
+   sprintf(filename, "%s%c%s%c%s%c%s", root, '/', HISTORIES_DIR, '/', client.name, '/', HISTORY_FILENAME);
 
-   FILE * history_file = fopen(filename, "r");
+   FILE *history_file = fopen(filename, "r");
    free(filename);
 
-   if(history_file)
+   if (history_file)
    {
       fgets(message, BUF_SIZE, history_file);
-      while(!feof(history_file))
+      while (!feof(history_file))
       {
          write_client(client.sock, message);
          fgets(message, BUF_SIZE, history_file);
       }
    }
+   fclose(history_file);
 }
-
 
 static int get_client_from_name(Client *clients, int actual, const char *client_name)
 {
@@ -303,6 +313,7 @@ static int get_group_from_name(Group *groups, int nbGroups, const char *group_na
 
 static void send_message_to_all_clients(Client *clients, Client sender, int actual, const char *buffer, char from_server)
 {
+   save_sender_message(sender.name, buffer);
    int i = 0;
    char message[BUF_SIZE];
    message[0] = 0;
@@ -314,7 +325,9 @@ static void send_message_to_all_clients(Client *clients, Client sender, int actu
          strncpy(message, "", BUF_SIZE - 1);
          if (from_server == 0)
          {
-            strncpy(message, get_date_heure(), BUF_SIZE - 1);
+            char *date = get_date_heure();
+            strncpy(message, date, BUF_SIZE - 1);
+            free(date);
             strncat(message, " - ", sizeof message - strlen(message) - 1);
             strncat(message, sender.name, sizeof message - strlen(message) - 1);
             strncat(message, " : ", sizeof message - strlen(message) - 1);
@@ -351,6 +364,8 @@ static int position(const char *chaine, char carac, int last)
 
 static void send_message_to_one_client(Client *clients, Client sender, int actual, const char *buffer)
 {
+
+   save_sender_message(sender.name, buffer);
    int i = 0;
    char message[BUF_SIZE];
    message[0] = 0;
@@ -364,9 +379,10 @@ static void send_message_to_one_client(Client *clients, Client sender, int actua
 
       strncpy(name, buffer + 1, pos - 1);
 
-      strncpy(message, get_date_heure(), BUF_SIZE - 1);
+      char *date = get_date_heure();
+      strncpy(message, date, BUF_SIZE - 1);
+      free(date);
       strncat(message, " - ", sizeof message - strlen(message) - 1);
-      printf("%s\n", message);
       strncat(message, sender.name, sizeof message - strlen(message) - 1);
       strncat(message, " :", sizeof message - strlen(message) - 1);
       char newmessage[strlen(buffer)];
@@ -385,20 +401,22 @@ static void send_message_to_one_client(Client *clients, Client sender, int actua
 
 static void send_message_to_a_group(Client *clients, Client sender, Group *groups, int nbGroups, const char *buffer)
 {
+
+   save_sender_message(sender.name, buffer);
    /*find the group from name in the array*/
-   char name2[MAX_NAME]; 
-   strcpy(name2,"");
-   int pos = position(buffer,' ',0);
-   strncat(name2,buffer+1,pos-1);
-   strcat(name2,"\0");
-   int pos2 = get_group_from_name(groups,nbGroups,name2);
+   char name2[MAX_NAME];
+   strcpy(name2, "");
+   int pos = position(buffer, ' ', 0);
+   strncat(name2, buffer + 1, pos - 1);
+   strcat(name2, "\0");
+   int pos2 = get_group_from_name(groups, nbGroups, name2);
 
    /* we make sure that the sender is part of the group*/
    bool part = false;
    int i = 0;
    for (i = 0; i < groups[pos2].nbMembres; i++)
    {
-      if(groups[pos2].membres[i].sock == sender.sock)
+      if (groups[pos2].membres[i].sock == sender.sock)
       {
          part = true;
          break;
@@ -414,13 +432,17 @@ static void send_message_to_a_group(Client *clients, Client sender, Group *group
          /* we don't send message to the sender */
          if (sender.sock != groups[pos2].membres[i].sock)
          {
-            strcpy(message,"[");
-            strcat(message,name2);
-            strcat(message,"] ");
+            char *date = get_date_heure();
+            strncpy(message, date, BUF_SIZE - 1);
+            free(date);
+            strncat(message, " - ", sizeof message - strlen(message) - 1);
+            strncat(message, "[", sizeof message - strlen(message) - 1);
+            strcat(message, name2);
+            strcat(message, "] ");
             strncat(message, sender.name, BUF_SIZE - 1);
             strncat(message, " :", sizeof message - strlen(message) - 1);
             char newmessage[strlen(buffer)];
-            strcpy(newmessage,buffer+pos);
+            strcpy(newmessage, buffer + pos);
             strncat(message, newmessage, sizeof message - strlen(message) - 1);
             write_client(groups[pos2].membres[i].sock, message);
             push_history(groups[pos2].membres[i].name, message);
@@ -428,7 +450,7 @@ static void send_message_to_a_group(Client *clients, Client sender, Group *group
       }
    }
 
-   else 
+   else
    {
       write_client(sender.sock, "You cannot send a message to a group you're not a part of.");
    }
@@ -436,41 +458,54 @@ static void send_message_to_a_group(Client *clients, Client sender, Group *group
 
 static void create_public_group(Group *groups, int nbGroups, Client creator, const char *buffer)
 {
-   //adds name to the group
-   strncpy(groups[nbGroups].name,buffer+20,MAX_NAME-1);
-   
-   //adds creator to the group
+   // adds name to the group
+   strncpy(groups[nbGroups].name, buffer + 20, MAX_NAME - 1);
+
+   // adds creator to the group
    groups[nbGroups].membres[0] = creator;
    groups[nbGroups].nbMembres = (groups[nbGroups].nbMembres + 1);
+   char message[BUF_SIZE];
+   char name[MAX_NAME];
+   strncpy(name, groups[nbGroups].name, strlen(groups[nbGroups].name));
+   sprintf(message, "%s%s", "You created the group ", name);
+   save_sender_message(creator.name, message);
+   write_client(creator.sock, message);
 }
 
 static void add_member_to_public_group(Group *groups, int nbGroups, Client joiner, const char *buffer)
 {
-   char name[MAX_NAME]; 
-   strncpy(name,buffer+5,strlen(buffer)-4);
+   char name[MAX_NAME];
+   strncpy(name, buffer + 11, strlen(buffer) - 4);
+   printf("%s\n", name);
    int pos;
-   pos = get_group_from_name(groups,nbGroups,name);
+   pos = get_group_from_name(groups, nbGroups, name);
    int i;
    bool part = false;
-   for(i = 0; i < groups[pos].nbMembres; i++)
+   for (i = 0; i < groups[pos].nbMembres; i++)
    {
       if (joiner.sock == groups[pos].membres[i].sock)
       {
-         write_client(joiner.sock,"You already are part of the group.");
+         write_client(joiner.sock, "You already are part of the group.");
          part = true;
-         break;
+         return;
       }
    }
    if (!part)
    {
       if (pos == 9)
       {
-         write_client(joiner.sock,"Sorry, it appears that this group is already full.");
+         write_client(joiner.sock, "Sorry, it appears that this group is already full.");
+         return;
       }
-      else 
+      else
       {
-      groups[pos].membres[groups[pos].nbMembres] = joiner;
-      groups[pos].nbMembres = (groups[pos].nbMembres+1);
+         groups[pos].membres[groups[pos].nbMembres] = joiner;
+         groups[pos].nbMembres = (groups[pos].nbMembres + 1);
+         
+         char message[BUF_SIZE];
+         sprintf(message, "%s%s", "You joined the group ", name);
+         save_sender_message(joiner.name, message);
+         write_client(joiner.sock, message);
       }
    }
 }

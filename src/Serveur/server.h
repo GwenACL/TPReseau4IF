@@ -74,4 +74,7 @@ static int get_client_from_name(Client *clients, int actual, const char* client_
 //finds the group index in an array of groups from its name
 static int get_group_from_name(Group *groups, int nbGroups, const char* group_name);
 
+//save in the sender history a message with the sending datetime
+static void save_sender_message(const char *sender_name, const char *message);
+
 #endif /* guard */
