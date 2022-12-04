@@ -179,13 +179,13 @@ static void app(void)
                {
                   send_message_to_a_group(clients, client, groups, nbGroups, buffer);
                }
-               else
-               {
-                  write_client(client.sock, "Invalid command");
-               }
                else if (strncmp(buffer,"available",1) == 0)
                {
                   see_connected(clients,actual,groups,nbGroups,client);
+               }
+               else
+               {
+                  write_client(client.sock, "Invalid command");
                }
                break;
             }
