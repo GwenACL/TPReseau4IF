@@ -365,7 +365,6 @@ static void send_message_to_one_client(Client *clients, Client sender, int actua
    char message[BUF_SIZE];
    message[0] = 0;
    int pos = position(buffer, ' ', 0);
-   printf("pos : %d %s", pos, CRLF);
 
    // si il y a un message après le nom du destinataire
    if (pos != -1)
@@ -387,7 +386,6 @@ static void send_message_to_one_client(Client *clients, Client sender, int actua
       strncat(message, newmessage, sizeof message - strlen(message) - 1);
 
       pos2 = get_client_from_name(clients, actual, name);
-      printf("pos2 : %d %s", pos2, CRLF);
 
       // si le client est connecté
       if (pos2 != -1)
