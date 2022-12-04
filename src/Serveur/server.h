@@ -67,7 +67,7 @@ static char* get_date_heure();
 static void create_public_group(Group * groups, int nbGroups, Client creator, const char* buffer);
 static void add_member_to_public_group(Group * groups, int nbGroups, Client joiner, const char* buffer);
 static void send_message_to_a_group(Client *clients, Client sender, Group *groups, int nbGroups, const char *buffer);
-static void create_private_group(Group * groups, int nbGroups, Client creator, const char* buffer);
+static int create_private_group(Group * groups, int nbGroups, Client creator, const char* buffer);
 static void add_member_to_private_group(Group * groups, int nbGroups, Client joiner, const char* buffer);
 
 //finds the client index in an array of clients from its name

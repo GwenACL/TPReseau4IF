@@ -157,8 +157,11 @@ static void app(void)
                }
                else if (strncmp(buffer,"create private group",20)==0)
                {
-                  create_private_group(groups, nbGroups, client, buffer);
+                  int crea = create_private_group(groups, nbGroups, client, buffer);
+                  if (crea == 1)
+                  {
                   nbGroups++;
+                  }
                }
                else if (strncmp(buffer,"join public group",17)==0)
                {
@@ -468,10 +471,17 @@ static void create_public_group(Group *groups, int nbGroups, Client creator, con
 
 }
 
-static void create_private_group(Group * groups, int nbGroups, Client creator, const char* buffer)
+static int create_private_group(Group * groups, int nbGroups, Client creator, const char* buffer)
 {
    //adds name and password to the group
    int pos = position(buffer+21,' ',0);
+
+   if (pos == -1)
+   {
+      write_client(creator.sock,"You cannot create a private group with an empty password.");
+      return 0;
+   }
+   
    strncpy(groups[nbGroups].name,buffer+21,pos);
    strncat(groups[nbGroups].password,buffer+22+pos,BUF_SIZE-1);
 
@@ -480,10 +490,9 @@ static void create_private_group(Group * groups, int nbGroups, Client creator, c
    groups[nbGroups].membres[0] = creator;
    groups[nbGroups].nbMembres = (groups[nbGroups].nbMembres+1);
 
-      //sets group as public
+   //sets group as public
    groups[nbGroups].private = true;
-
-
+   return 1;
 }
 
 static void add_member_to_public_group(Group *groups, int nbGroups, Client joiner, const char *buffer)
