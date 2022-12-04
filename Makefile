@@ -9,7 +9,7 @@ server: server.o
 client: client.o
 	gcc -o ./executables/client client.o
 
-server.o: ./src/Serveur/server.c ./src/Serveur/server.h ./src/Serveur/client.h
+server.o: ./src/Serveur/server.c ./src/Serveur/server.h ./src/Serveur/client.h ./src/Serveur/group.h
 	gcc -c ./src/Serveur/server.c 
 
 client.o: ./src/Client/client.c  ./src/Client/client.h
