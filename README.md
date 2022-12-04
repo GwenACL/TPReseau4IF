@@ -34,7 +34,7 @@ Depuis les clients, vous pouvez taper les commandes suivantes :
 
 
 Un systeme d'historique permet de sauvegarder les messages envoyés et reçus par chaque client. Un client peut se déconnecter et retrourvera les anciens messages (envoyés et reçus)
-lors de sa prochaine connexion. Il trouvera également les messages envoyés en son absence.
+lors de sa prochaine connexion. Il trouvera également les messages qui lui ont été envoyés en son absence.
 
 Remarque : L'historique des messages est persistant, si le serveur est arrêté, l'historique n'est pas effacé
 	   Les groupes ne sont pas persistés et doivent alors être recréés au redémarrage si le serveur est arrêté
