@@ -497,34 +497,42 @@ static void add_member_to_private_group(Group * groups, int nbGroups, Client joi
    int pos;
    pos = get_group_from_name(groups,nbGroups,name3);
 
-   if (strcmp(password,groups[pos].password)!=0)
+   if (pos == -1)
    {
-      write_client(joiner.sock, "Wrong password.");
+      write_client(joiner.sock,"There is no group with that name. Use 'availables' command to see online groups and members.");
    }
 
    else
    {
-      int i;
-      bool part = false;
-      for(i = 0; i < groups[pos].nbMembres; i++)
+      if (strcmp(password,groups[pos].password)!=0)
       {
-         if (joiner.sock == groups[pos].membres[i].sock)
-         {
-            write_client(joiner.sock,"You already are part of the group.");
-            part = true;
-            break;
-         }
+         write_client(joiner.sock, "Wrong password.");
       }
-      if (!part)
+
+      else
       {
-         if (pos == 9)
+         int i;
+         bool part = false;
+         for(i = 0; i < groups[pos].nbMembres; i++)
          {
-            write_client(joiner.sock,"Sorry, it appears that this group is already full.");
+            if (joiner.sock == groups[pos].membres[i].sock)
+            {
+               write_client(joiner.sock,"You already are part of the group.");
+               part = true;
+               break;
+            }
          }
-         else 
+         if (!part)
          {
-         groups[pos].membres[groups[pos].nbMembres] = joiner;
-         groups[pos].nbMembres = (groups[pos].nbMembres+1);
+            if (pos == 9)
+            {
+               write_client(joiner.sock,"Sorry, it appears that this group is already full.");
+            }
+            else 
+            {
+            groups[pos].membres[groups[pos].nbMembres] = joiner;
+            groups[pos].nbMembres = (groups[pos].nbMembres+1);
+            }
          }
       }
    }
