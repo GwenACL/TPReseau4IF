@@ -15,6 +15,7 @@
 #include <arpa/inet.h>
 #include <unistd.h> /* close */
 #include <netdb.h> /* gethostbyname */
+#include <time.h>
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #define closesocket(s) close(s)
@@ -36,24 +37,33 @@ typedef struct in_addr IN_ADDR;
 #define MAX_NAME    35 
 
 #define BUF_SIZE    1024
+#define HISTORIES_DIR "histories"
+#define HISTORY_FILENAME "history.txt"
 
 #include "client.h"
 #include "group.h"
 
-static void init(void);
+/*the server root directory path*/
+static char* root;
+
+static void init(const char* argv_0);
 static void end(void);
 static void app(void);
 static int init_connection(void);
 static void end_connection(int sock);
 static int read_client(SOCKET sock, char *buffer);
 static void write_client(SOCKET sock, const char *buffer);
-static void push_history(Client client, const char *message);
+static void push_history(const char * client_name, const char *message);
 static void send_history(Client client);
 static void send_message_to_all_clients(Client *clients, Client client, int actual, const char *buffer, char from_server);
 static void send_message_to_one_client(Client *clients, Client client, int actual, const char *buffer);
 static void remove_client(Client *clients, int to_remove, int *actual);
 static void clear_clients(Client *clients, int actual);
 static char* concat(const char * part1, const char* part2);
+
+static int position(const char *chaine, char carac, int last);
+/*get the current date formatted as dd/MM/yyyy hh:mm:ss*/
+static char* get_date_heure();
 static void create_public_group(Group * groups, int nbGroups, Client creator, const char* buffer);
 static void add_member_to_public_group(Group * groups, int nbGroups, Client joiner, const char* buffer);
 static void send_message_to_a_group(Client *clients, Client sender, Group *groups, int nbGroups, const char *buffer);
