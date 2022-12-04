@@ -22,4 +22,19 @@ Depuis les clients, vous pouvez taper les commandes suivantes :
 
 -create public group NomDuGroupe : crée un groupe public de nom "NomDuGroupe" et ajoute l'utilisateur comme membre. 
 
--join public group NomDuGroupe : permet de rejoindre un groupe existant si l'on n'est pas déjà membre et que le groupe n'est pas plein. 
+-create private groupe NomDuGroupe MotDePasse : crée un groupe privé de nom "NomDuGroupe" et de mot de passe "MotDePasse" et ajoute l'utilisateur comme membre
+
+-join public group NomDuGroupe : permet de rejoindre un groupe public existant si l'on n'est pas déjà membre et que le groupe n'est pas plein. 
+
+-join private group NomDuGroupe MotDePasse : permet de rejoindre un groupe privé existant si l'on n'est pas déjà membre et que le groupe n'est pas plein. 
+
+-@NomClientDestinataire Messsage : permet d'envoyer un message à un client
+
+-~NomDuGroupe Message : permet d'envoyer un message à tous les membres d'un groupe à condition que le client expediteur appartienne au groupe
+
+
+Un systeme d'historique permet de sauvegarder les messages envoyés et reçus par chaque client. Un client peut se déconnecter et retrourvera les anciens messages (envoyés et reçus)
+lors de sa prochaine connexion. Il trouvera également les messages envoyés en son absence.
+
+Remarque : L'historique des messages est persistant, si le serveur est arrêté, l'historique n'est pas effacé
+	   Les groupes ne sont pas persistés et doivent alors être recréés au redémarrage si le serveur est arrêté
