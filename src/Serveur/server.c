@@ -49,6 +49,7 @@ static void app(void)
 
    while (1)
    {
+      strcpy(buffer,"");
       int i = 0;
       FD_ZERO(&rdfs);
 
@@ -316,18 +317,6 @@ static int position(const char *chaine, char carac, int last)
       return -1;
    }
    return (found - chaine) / sizeof(char);
-
-   /*  int taille = strlen(chaine);
-     int pos = 0;
-     int i = 0;
-     for (i = 0; i < taille; i++)
-     {
-        if (chaine[i] == carac)
-        {
-           return i;
-        }
-     }
-     return -1;*/
 }
 
 static void send_message_to_one_client(Client *clients, Client sender, int actual, const char *buffer)
@@ -366,45 +355,61 @@ static void send_message_to_one_client(Client *clients, Client sender, int actua
 
 static void send_message_to_a_group(Client *clients, Client sender, Group *groups, int nbGroups, const char *buffer)
 {
-
    /*find the group from name in the array*/
-   char name[MAX_NAME]; 
+   char name2[MAX_NAME]; 
+   strcpy(name2,"");
    int pos = position(buffer,' ',0);
-   strncpy(name,buffer+1,pos-1);
-   //printf("nom récupéré à aller comparer(envoie de mess) : %s %s",name,CRLF);
-   int pos2 = get_group_from_name(groups,nbGroups,name);
-   //printf("position récupérée : %d %s",pos2,CRLF);
+   strncat(name2,buffer+1,pos-1);
+   strcat(name2,"\0");
+   int pos2 = get_group_from_name(groups,nbGroups,name2);
 
+   /* we make sure that the sender is part of the group*/
+   bool part = false;
    int i = 0;
-   char message[BUF_SIZE];
-   message[0] = 0;
    for (i = 0; i < groups[pos2].nbMembres; i++)
    {
-      //printf("membre %d : %s %s",i,groups[pos2].membres[i].name,CRLF);
-      /* we don't send message to the sender */
-      if (sender.sock != groups[pos2].membres[i].sock)
+      if(groups[pos2].membres[i].sock == sender.sock)
       {
-         strcpy(message,"[");
-         strcat(message,name);
-         strcat(message,"] ");
-         strncat(message, sender.name, BUF_SIZE - 1);
-         strncat(message, " :", sizeof message - strlen(message) - 1);
-         char newmessage[strlen(buffer)];
-         strcpy(newmessage,buffer+pos);
-         strncat(message, newmessage, sizeof message - strlen(message) - 1);
-         write_client(groups[pos2].membres[i].sock, message);
+         part = true;
+         break;
       }
+   }
+
+   if (part)
+   {
+
+      char message[BUF_SIZE];
+      message[0] = 0;
+      for (i = 0; i < groups[pos2].nbMembres; i++)
+      {
+         /* we don't send message to the sender */
+         if (sender.sock != groups[pos2].membres[i].sock)
+         {
+            strcpy(message,"[");
+            strcat(message,name2);
+            strcat(message,"] ");
+            strncat(message, sender.name, BUF_SIZE - 1);
+            strncat(message, " :", sizeof message - strlen(message) - 1);
+            char newmessage[strlen(buffer)];
+            strcpy(newmessage,buffer+pos);
+            strncat(message, newmessage, sizeof message - strlen(message) - 1);
+            write_client(groups[pos2].membres[i].sock, message);
+         }
+      }
+   }
+
+   else 
+   {
+      write_client(sender.sock, "You cannot send a message to a group you're not a part of.");
    }
 }
 
 static void create_public_group(Group * groups, int nbGroups, Client creator, const char* buffer)
 {
-   //donne le nom au groupe
-   //int pos = position(buffer+12)
+   //adds name to the group
    strncpy(groups[nbGroups].name,buffer+20,MAX_NAME-1);
-   //printf("nom du groupe : %s %s",groups[nbGroups].name,CRLF);
    
-   //rajoute le créateur au groupe
+   //adds creator to the group
    groups[nbGroups].membres[0] = creator;
    groups[nbGroups].nbMembres = (groups[nbGroups].nbMembres+1);
 
@@ -415,19 +420,30 @@ static void add_member_to_public_group(Group * groups, int nbGroups, Client join
 {
    char name[MAX_NAME]; 
    strncpy(name,buffer+5,strlen(buffer)-4);
-   //printf("nom récupéré à aller comparer : %s %s",name,CRLF);
    int pos;
    pos = get_group_from_name(groups,nbGroups,name);
-   //printf("position du groupe : %d %s",pos,CRLF);
-   //printf("nb membres avant ajout : %d %s",groups[pos].nbMembres, CRLF);
-   //à gérer
-   if (pos == 9)
+   int i;
+   bool part = false;
+   for(i = 0; i < groups[pos].nbMembres; i++)
    {
+      if (joiner.sock == groups[pos].membres[i].sock)
+      {
+         write_client(joiner.sock,"You already are part of the group.");
+         part = true;
+         break;
+      }
    }
-   else 
+   if (!part)
    {
-   groups[pos].membres[groups[pos].nbMembres] = joiner;
-   groups[pos].nbMembres = (groups[pos].nbMembres+1);
+      if (pos == 9)
+      {
+         write_client(joiner.sock,"Sorry, it appears that this group is already full.");
+      }
+      else 
+      {
+      groups[pos].membres[groups[pos].nbMembres] = joiner;
+      groups[pos].nbMembres = (groups[pos].nbMembres+1);
+      }
    }
 }
 
