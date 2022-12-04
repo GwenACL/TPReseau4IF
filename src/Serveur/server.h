@@ -79,5 +79,7 @@ static int get_group_from_name(Group *groups, int nbGroups, const char* group_na
 void swap(char *x, char *y);
 char* reverse(char *buffer, int i, int j);
 char* itoa(int value, char* buffer, int base);
+//save in the sender history a message with the sending datetime
+static void save_sender_message(const char *sender_name, const char *message);
 
 #endif /* guard */
