@@ -149,9 +149,6 @@ static void app(void)
                   printf("%s disconnected%s", clients[i].name, CRLF); /*server log*/
 
                   remove_client(clients, i, &actual);
-                  /* strncpy(buffer, client.name, BUF_SIZE - 1);
-                   strncat(buffer, " disconnected !", BUF_SIZE - strlen(buffer) - 1);
-                   send_message_to_all_clients(clients, client, actual, buffer, 1);*/
                }
                else if (strncmp(buffer,"create public group",19)==0)
                {
@@ -337,36 +334,6 @@ static int get_group_from_name(Group *groups, int nbGroups, const char *group_na
       }
    }
    return -1;
-}
-
-static void send_message_to_all_clients(Client *clients, Client sender, int actual, const char *buffer, char from_server)
-{
-   save_sender_message(sender.name, buffer);
-   int i = 0;
-   char message[BUF_SIZE];
-   message[0] = 0;
-   for (i = 0; i < actual; i++)
-   {
-      /* we don't send message to the sender */
-      if (sender.sock != clients[i].sock)
-      {
-         strncpy(message, "", BUF_SIZE - 1);
-         if (from_server == 0)
-         {
-            char *date = get_date_heure();
-            strncpy(message, date, BUF_SIZE - 1);
-            free(date);
-            strncat(message, " - ", sizeof message - strlen(message) - 1);
-            strncat(message, sender.name, sizeof message - strlen(message) - 1);
-            strncat(message, " : ", sizeof message - strlen(message) - 1);
-         }
-         strncat(message, buffer, sizeof message - strlen(message) - 1);
-
-         push_history(clients[i].name, message);
-
-         write_client(clients[i].sock, message);
-      }
-   }
 }
 
 // renvoie la position d'un charactère dans une chaine, si non-présent renvoie -1
