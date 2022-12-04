@@ -369,74 +369,7 @@ static void send_message_to_a_group(Client *clients, Client sender, Group *group
 
    /*find the group from name in the array*/
    char name[MAX_NAME]; 
-   int pos = position(buffer,' ');
-   strncpy(name,buffer+1,pos-1);
-   //printf("nom récupéré à aller comparer(envoie de mess) : %s %s",name,CRLF);
-   int pos2 = get_group_from_name(groups,nbGroups,name);
-   //printf("position récupérée : %d %s",pos2,CRLF);
-
-   int i = 0;
-   char message[BUF_SIZE];
-   message[0] = 0;
-   for (i = 0; i < groups[pos2].nbMembres; i++)
-   {
-      //printf("membre %d : %s %s",i,groups[pos2].membres[i].name,CRLF);
-      /* we don't send message to the sender */
-      if (sender.sock != groups[pos2].membres[i].sock)
-      {
-         strcpy(message,"[");
-         strcat(message,name);
-         strcat(message,"] ");
-         strncat(message, sender.name, BUF_SIZE - 1);
-         strncat(message, " :", sizeof message - strlen(message) - 1);
-         char newmessage[strlen(buffer)];
-         strcpy(newmessage,buffer+pos);
-         strncat(message, newmessage, sizeof message - strlen(message) - 1);
-         write_client(groups[pos2].membres[i].sock, message);
-      }
-   }
-}
-
-static void create_public_group(Group * groups, int nbGroups, Client creator, const char* buffer)
-{
-   //donne le nom au groupe
-   //int pos = position(buffer+12)
-   strncpy(groups[nbGroups].name,buffer+20,MAX_NAME-1);
-   //printf("nom du groupe : %s %s",groups[nbGroups].name,CRLF);
-   
-   //rajoute le créateur au groupe
-   groups[nbGroups].membres[0] = creator;
-   groups[nbGroups].nbMembres = (groups[nbGroups].nbMembres+1);
-
-
-}
-
-static void add_member_to_public_group(Group * groups, int nbGroups, Client joiner, const char* buffer)
-{
-   char name[MAX_NAME]; 
-   strncpy(name,buffer+5,strlen(buffer)-4);
-   //printf("nom récupéré à aller comparer : %s %s",name,CRLF);
-   int pos;
-   pos = get_group_from_name(groups,nbGroups,name);
-   //printf("position du groupe : %d %s",pos,CRLF);
-   //printf("nb membres avant ajout : %d %s",groups[pos].nbMembres, CRLF);
-   //à gérer
-   if (pos == 9)
-   {
-   }
-   else 
-   {
-   groups[pos].membres[groups[pos].nbMembres] = joiner;
-   groups[pos].nbMembres = (groups[pos].nbMembres+1);
-   }
-}
-
-static void send_message_to_a_group(Client *clients, Client sender, Group *groups, int nbGroups, const char *buffer)
-{
-
-   /*find the group from name in the array*/
-   char name[MAX_NAME]; 
-   int pos = position(buffer,' ');
+   int pos = position(buffer,' ',0);
    strncpy(name,buffer+1,pos-1);
    //printf("nom récupéré à aller comparer(envoie de mess) : %s %s",name,CRLF);
    int pos2 = get_group_from_name(groups,nbGroups,name);
