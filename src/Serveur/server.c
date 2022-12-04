@@ -152,23 +152,23 @@ static void app(void)
                   strncat(buffer, " disconnected !", BUF_SIZE - strlen(buffer) - 1);
                   send_message_to_all_clients(clients, client, actual, buffer, 1);
                }
-               else if (strncmp(buffer,"create public group",12)==0)
+               else if (strncmp(buffer,"create public group",19)==0)
                {
                   create_public_group(groups, nbGroups, client, buffer);
                   nbGroups++;
-                  int i = 0;
-                  /*
-                  printf("nb groupes après création : %d %s",nbGroups,CRLF);
-                  printf("nb membres du groupe 0 : %d %s",groups[0].nbMembres,CRLF);
-                  for (i = 0; i < groups[0].nbMembres;i++)
-                  {
-                     printf("membre %d : %s %s",i,groups[0].membres[i].name,CRLF);
-                  }
-                  */
                }
-               else if (strncmp(buffer,"join",4)==0)
+               else if (strncmp(buffer,"create private group",20)==0)
+               {
+                  create_private_group(groups, nbGroups, client, buffer);
+                  nbGroups++;
+               }
+               else if (strncmp(buffer,"join public group",17)==0)
                {
                   add_member_to_public_group(groups, nbGroups, client, buffer);
+               }
+               else if (strncmp(buffer,"join private group",18)==0)
+               {
+                  add_member_to_private_group(groups, nbGroups, client, buffer);
                }
                else if (strncmp(buffer,"@",1) == 0)
                {
@@ -177,6 +177,10 @@ static void app(void)
                else if (strncmp(buffer,"~",1) == 0)
                {
                   send_message_to_a_group(clients,client,groups,nbGroups,buffer);
+               }
+               else if (strncmp(buffer,"available",1) == 0)
+               {
+                  see_connected(clients,actual,groups,nbGroups,client);
                }
                break;
             }
@@ -413,13 +417,36 @@ static void create_public_group(Group * groups, int nbGroups, Client creator, co
    groups[nbGroups].membres[0] = creator;
    groups[nbGroups].nbMembres = (groups[nbGroups].nbMembres+1);
 
+   //sets group as public
+   groups[nbGroups].private = false;
+
+
+}
+
+static void create_private_group(Group * groups, int nbGroups, Client creator, const char* buffer)
+{
+   //adds name and password to the group
+   int pos = position(buffer+21,' ',0);
+   strncpy(groups[nbGroups].name,buffer+21,pos);
+   strncat(groups[nbGroups].password,buffer+22+pos,BUF_SIZE-1);
+   printf("position du caractère de fin : %d %s",position(groups[nbGroups].password,'\0',0),CRLF);
+
+   
+   //adds creator to the group
+   groups[nbGroups].membres[0] = creator;
+   groups[nbGroups].nbMembres = (groups[nbGroups].nbMembres+1);
+
+      //sets group as public
+   groups[nbGroups].private = true;
+
 
 }
 
 static void add_member_to_public_group(Group * groups, int nbGroups, Client joiner, const char* buffer)
 {
    char name[MAX_NAME]; 
-   strncpy(name,buffer+5,strlen(buffer)-4);
+   strncpy(name,buffer+18,strlen(buffer)-18);
+   printf("nom public : %s %s",name,CRLF);
    int pos;
    pos = get_group_from_name(groups,nbGroups,name);
    int i;
@@ -445,6 +472,153 @@ static void add_member_to_public_group(Group * groups, int nbGroups, Client join
       groups[pos].nbMembres = (groups[pos].nbMembres+1);
       }
    }
+}
+
+static void add_member_to_private_group(Group * groups, int nbGroups, Client joiner, const char* buffer)
+{
+   char name3[MAX_NAME]; 
+   char password[BUF_SIZE];
+   int posNom = position(buffer+19,' ',0);
+   strcpy(name3,"");
+   strncat(name3,buffer+19,posNom);
+   printf("nom reçu : %s %s", name3, CRLF);
+   strcpy(password,"");
+   strncat(password,buffer+20+posNom,BUF_SIZE-1);
+   printf("password reçu : %s %s", password, CRLF);
+   printf("position du caractère de fin (reçu) : %d %s",position(password,'\0',0),CRLF);
+   printf("taille de password : %ld %s", strlen(password),CRLF);
+   
+   int pos;
+   pos = get_group_from_name(groups,nbGroups,name3);
+
+   printf("mot de passe donné : %s %s", password, CRLF);
+   printf("mot de passe réel : %s %s", groups[pos].password, CRLF);
+   if (strcmp(password,groups[pos].password)!=0)
+   {
+      write_client(joiner.sock, "Wrong password.");
+   }
+
+   else
+   {
+      int i;
+      bool part = false;
+      for(i = 0; i < groups[pos].nbMembres; i++)
+      {
+         if (joiner.sock == groups[pos].membres[i].sock)
+         {
+            write_client(joiner.sock,"You already are part of the group.");
+            part = true;
+            break;
+         }
+      }
+      if (!part)
+      {
+         if (pos == 9)
+         {
+            write_client(joiner.sock,"Sorry, it appears that this group is already full.");
+         }
+         else 
+         {
+         groups[pos].membres[groups[pos].nbMembres] = joiner;
+         groups[pos].nbMembres = (groups[pos].nbMembres+1);
+         }
+      }
+   }
+}
+
+// Fonction pour échanger deux nombres
+void swap(char *x, char *y) {
+   char t = *x; *x = *y; *y = t;
+}
+
+// Fonction pour inverser `buffer[i…j]`
+char* reverse(char *buffer, int i, int j)
+{
+   while (i < j) {
+      swap(&buffer[i++], &buffer[j--]);
+   }
+
+   return buffer;
+}
+
+// Fonction itérative pour implémenter la fonction `itoa()` en C
+char* itoa(int value, char* buffer, int base)
+{
+// entrée invalide
+   if (base < 2 || base > 32) {
+      return buffer;
+   }
+
+// considère la valeur absolue du nombre
+   int n = abs(value);
+
+   int i = 0;
+   while (n)
+   {
+      int r = n % base;
+
+      if (r >= 10) {
+         buffer[i++] = 65 + (r - 10);
+      }
+      else {
+         buffer[i++] = 48 + r;
+      }
+
+   n = n / base;
+   }
+
+// si le nombre est 0
+   if (i == 0) {
+      buffer[i++] = '0';
+   }
+
+// Si la base est 10 et la valeur est négative, la string résultante
+// est précédé d'un signe moins (-)
+// Avec toute autre base, la valeur est toujours considérée comme non signée
+   if (value < 0 && base == 10) {
+      buffer[i++] = '-';
+   }
+
+   buffer[i] = '\0'; // string de fin nulle
+
+// inverse la string et la renvoie
+   return reverse(buffer, 0, i - 1);
+}
+
+static void see_connected(Client * clients, int actual, Group * groups, int nbGroups, Client client)
+{
+   write_client(client.sock,"Online members and groups : \r\n \r\n");
+   write_client(client.sock, "Groups : \r\n");
+   char message[BUF_SIZE];
+   char buff[BUF_SIZE];
+
+   int i;
+   for (i = 0; i<nbGroups;i++)
+   {
+      strncpy(message,groups[i].name,BUF_SIZE);
+      if (groups[i].private)
+      {
+         strcat(message, " -");
+      }
+      else 
+      {
+         strcat(message, " +");
+      }
+      strcat(message, " [");
+      strcat(message, itoa(groups[i].nbMembres,buff,10));
+      strcat(message, "/10] \r\n");
+      write_client(client.sock, message);
+   }
+
+   write_client(client.sock, "\r\nMembers : \r\n");
+
+   for (i = 0; i<actual;i++)
+   {
+      strncpy(message,clients[i].name,BUF_SIZE);
+      strcat(message,"\r\n");
+      write_client(client.sock, message);
+   }
+
 }
 
 static int init_connection(void)
