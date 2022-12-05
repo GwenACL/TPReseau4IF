@@ -459,7 +459,8 @@ static void send_message_to_a_group(Client *clients, Client sender, Group *group
 static void create_public_group(Group *groups, int nbGroups, Client creator, const char *buffer)
 {
    // adds name to the group
-   strncpy(groups[nbGroups].name, buffer + 20, MAX_NAME - 1);
+   strcpy(groups[nbGroups].name,"");
+   strncat(groups[nbGroups].name, buffer + 20, MAX_NAME - 1);
 
    // adds creator to the group
    groups[nbGroups].membres[0] = creator;
@@ -482,7 +483,9 @@ static int create_private_group(Group * groups, int nbGroups, Client creator, co
       return 0;
    }
    
-   strncpy(groups[nbGroups].name,buffer+21,pos);
+   strcpy(groups[nbGroups].name,"");
+   strncat(groups[nbGroups].name,buffer+21,pos);
+   strcpy(groups[nbGroups].password,"");
    strncat(groups[nbGroups].password,buffer+22+pos,BUF_SIZE-1);
 
    
